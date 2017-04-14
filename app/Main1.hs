@@ -36,4 +36,3 @@ main = do
   case s of
     Just x -> print $ x
     Nothing -> print "Error"
-

@@ -4,8 +4,8 @@ import qualified Control.Monad.Trans.State.Strict as ST
 import qualified Control.Monad.Trans.Except as Exc
 import Control.Monad.Reader
 import Control.Monad.Error.Class
-
 --
+
 type Response = String
 type Request = String
 
@@ -14,23 +14,22 @@ type ActionT a = Exc.ExceptT ActionError (ReaderT String (ST.State Response)) a
 type Middleware = String -> String
 type Route = Middleware -> Middleware
 
-data AppState = AppState { middlewares:: [Route]}
+data AppState = AppState { routes:: [Route]}
 
 type ActionError = String
 
 type AppStateT = ST.State AppState
 
+add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
 
-add_middleware' mf s@(AppState {middlewares = mw}) = s {middlewares = mf:mw}
-
-construct_response args = intercalate "\n" args
+construct_response args = intercalate " " args
 
 route_handler1 :: ActionT ()
 route_handler1 = do
   input_string <- ask
   let st = (
         ST.modify
-          $ (\s -> construct_response [s, input_string, ": from route_handler1"]))
+          $ (\_ -> construct_response ["request:" ++ input_string, "processed by route_handler1"]))
   lift . lift $ st
 
 route_handler2 :: ActionT ()
@@ -47,7 +46,7 @@ route_handler3 = do
   input_string <- ask
   lift . lift $ (ST.modify $ (\s -> s ++ input_string ++ " inside middleware func 3"))
 
-add_middleware mf pat = ST.modify $ \s -> add_middleware' (route mf pat) s
+add_route mf pat = ST.modify $ \s -> add_route' (route mf pat) s
 
 cond condition_str = f where
   f i = i == condition_str
@@ -71,26 +70,32 @@ runAction action request =
                $ (flip runReaderT request)
                $ (Exc.runExceptT action)
       left = (const $ Just $ "There was an error")
-      right = (const (Just $ s ++ "..state updated in run_action..")) in
+      right = (const (Just $ s)) in
     either  left right a
+
 
 myApp :: AppStateT ()
 myApp = do
-  add_middleware route_handler1 (\s -> s == "middleware11")
-  add_middleware route_handler3_buggy (\s -> s == "middleware1")
-  add_middleware route_handler2 (\s -> s == "middleware2")
-  add_middleware route_handler3 (\s -> s == "middleware3")
+  add_route route_handler1 (\s -> s == "handler1")
+  add_route route_handler2 (\s -> s == "handler2")
+  add_route route_handler3 (\s -> s == "handler3")
+  add_route route_handler3_buggy (\s -> s == "buggy")
+
 
 runMyApp initial_string my_app =
-  let s = ST.execState my_app $ AppState { middlewares = []}
-      output = foldl (flip ($)) initial_string (middlewares s) in
+  let s = ST.execState my_app $ AppState { routes = []}
+      output = foldl (flip ($)) initial_string (routes s) in
   output
 
 defRoute _ = "There was no route defined to process your request."
 
 main = do
-  putStrLn "Please type in the request."
+  putStrLn "Please type in the request"
+  putStrLn "(one of 'handler1', 'handler2', 'hanlder3', 'buggy' or any string for default handling)"
   request <- getLine
-  putStrLn $ "Starting demonstration of middlewares"
-  let x1 = runMyApp defRoute myApp request in
+  unless (request == "q") $ do
+    let x1 = runMyApp defRoute myApp request
     putStrLn $ x1
+    putStrLn "\n\n\n"
+    main
+     
