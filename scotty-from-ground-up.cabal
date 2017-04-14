@@ -33,20 +33,20 @@ executable main1
                      , mtl
   default-language:    Haskell2010
 
-executable main2
-  hs-source-dirs:      app
-  main-is:             Main2.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base
+-- executable main2
+--   hs-source-dirs:      app
+--   main-is:             Main2.hs
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:       base
                      
-                     , containers
-                     , vector
-                     , trifecta
-                     , transformers
-                     , free
-                     , contravariant
-                     , mtl
-  default-language:    Haskell2010
+--                      , containers
+--                      , vector
+--                      , trifecta
+--                      , transformers
+--                      , free
+--                      , contravariant
+--                      , mtl
+--   default-language:    Haskell2010
 
 executable main3
   hs-source-dirs:      app

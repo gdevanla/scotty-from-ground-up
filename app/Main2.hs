@@ -1,6 +1,7 @@
 --- Demonstrate handling routes only if previous one
 
 import qualified Control.Monad.Trans.State.Strict as ST
+import Data.List
 
 -- State Monad
 -- How to use a State Monad
@@ -14,11 +15,17 @@ type AppStateT = ST.State AppState
 
 add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
 
-route_handler input = input ++ " middleware1 called\n"
+construct_response args = intercalate " " args
 
-route_handler2 input = input ++ " middleware2 called\n"
+route_handler1 request =
+  construct_response [
+  "\nrequest in handler1: got " ++ request]
 
-route_handler3 input = input ++ " middleware3 called\n"
+route_handler2 request = construct_response [
+      "\n\trequest in handler2 got :" ++ request]
+
+route_handler3 request = construct_response [
+  "\n\t\trequest in handler3:" ++ request]
 
 route mw mw1 input_string =
   let tryNext = mw1 input_string in

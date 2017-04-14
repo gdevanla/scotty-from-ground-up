@@ -42,6 +42,7 @@ runMyApp initial_string my_app = do
 
 main = do
   putStrLn "Please type in the request"
+  putStrLn "(one of 'handler1', 'handler2', 'handler3', 'buggy' or any string for default handling)"
   request <- getLine
   unless (request == "q") $ do
     let response = runMyApp request myApp
