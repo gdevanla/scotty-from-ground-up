@@ -1,38 +1,51 @@
 --module Main3 where
 
 import qualified Control.Monad.Trans.State.Strict as ST
+import Data.List
+import Control.Monad
 
 -- State Monad
 -- How to use a State Monad
 
-data AppState = AppState { middlewares::[String->String]}
+type Route = String -> String
 
-type AppStateT = ST.State AppState 
+data AppState = AppState { routes::[Route]}
 
-add_middleware' mf s@(AppState {middlewares = mw}) = s {middlewares = mf:mw}
+type AppStateT = ST.State AppState
 
-middleware_func1 input = input ++ " middleware1 called\n"
+construct_response args = intercalate " " args
 
-middleware_func2 input = input ++ " middleware2 called\n"
+add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
 
-middleware_func3 input = input ++ " middleware3 called\n"
+route_handler1 request =
+  construct_response [
+  "\nrequest in handler1: got " ++ request]
 
-add_middleware mf = ST.modify $ \s -> add_middleware' mf s
+route_handler2 request = construct_response [
+      "\n\trequest in handler2 got :" ++ request]
+
+route_handler3 request = construct_response [
+  "\n\t\trequest in handler3:" ++ request]
+
+add_route mf = ST.modify $ \s -> add_route' mf s
 
 myApp :: AppStateT ()
 myApp = do
-  add_middleware middleware_func1
-  add_middleware middleware_func2
-  add_middleware middleware_func3
+  add_route route_handler1
+  add_route route_handler2
+  add_route route_handler3
 
 runMyApp initial_string my_app = do
-  let s = ST.execState my_app $ AppState { middlewares = []}
-  let output = foldl (flip ($)) initial_string (middlewares s)
-  return $ Just output
+  let s = ST.execState my_app $ AppState { routes = []}
+  let output = foldl (flip ($)) initial_string (routes s)
+  return $ output
 
 main = do
-  print $ "Starting demonstration of middlewares"
-  let s = runMyApp "initial_string" myApp
-  case s of
-    Just x -> print $ x
-    Nothing -> print "Error"
+  putStrLn "Please type in the request"
+  request <- getLine
+  unless (request == "q") $ do
+    let response = runMyApp request myApp
+    case response of
+      Just x -> putStrLn $ x
+      Nothing -> putStrLn "Error"
+    main

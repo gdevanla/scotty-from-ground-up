@@ -11,8 +11,8 @@ type Request = String
 
 type ActionT a = Exc.ExceptT ActionError (ReaderT String (ST.State Response)) a
 
-type Middleware = String -> String
-type Route = Middleware -> Middleware
+type Application = String -> String
+type Route = Application -> Application
 
 data AppState = AppState { routes:: [Route]}
 
@@ -98,4 +98,3 @@ main = do
     putStrLn $ x1
     putStrLn "\n\n\n"
     main
-     

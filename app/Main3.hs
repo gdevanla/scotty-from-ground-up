@@ -5,22 +5,21 @@ import qualified Control.Monad.Trans.State.Strict as ST
 -- State Monad
 -- How to use a State Monad
 
-type Middleware = String -> String
-type Route = Middleware -> Middleware
+type Application = String -> String
+type Route = Application -> Application
 
-data AppState = AppState { middlewares:: [Route]}
+data AppState = AppState { routes:: [Route]}
 
 type AppStateT = ST.State AppState
 
-add_middleware' mf s@(AppState {middlewares = mw}) = s {middlewares = mf:mw}
+add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
 
-middleware_func1 input = input ++ " middleware1 called\n"
+route_handler1 input = input ++ " middleware1 called\n"
 
-middleware_func2 input = input ++ " middleware2 called\n"
+route_handler2 input = input ++ " middleware2 called\n"
 
-middleware_func3 input = input ++ " middleware3 called\n"
+route_handler3 input = input ++ " middleware3 called\n"
 
-route :: Middleware -> (String -> Bool) -> Route
 route mw pat mw1 input_string =
   let tryNext = mw1 input_string in
   if pat input_string
@@ -30,24 +29,20 @@ route mw pat mw1 input_string =
   else
     tryNext
 
-add_middleware mf pat = ST.modify $ \s -> add_middleware' (route mf pat) s
+add_route mf pat = ST.modify $ \s -> add_route' (route mf pat) s
 
 myApp :: AppStateT ()
 myApp = do
-  add_middleware middleware_func1 (\s -> s == "middleware1")
-  add_middleware middleware_func2 (\s -> s == "middleware2")
-  add_middleware middleware_func3 (\s -> s == "middleware3")
+  add_route route_handler1 (\s -> s == "middleware1")
+  add_route route_handler2 (\s -> s == "middleware2")
+  add_route route_handler3 (\s -> s == "middleware3")
 
 runMyApp initial_string my_app =
-  let s = ST.execState my_app $ AppState { middlewares = []}
-      output = foldl (flip ($)) initial_string (middlewares s) in
+  let s = ST.execState my_app $ AppState { routes = []}
+      output = foldl (flip ($)) initial_string (routes s) in
   output
 
 main = do
-  print $ "Starting demonstration of middlewares"
-  let x1 = runMyApp (\x-> "default middlware called") myApp "middleware" 
+  print $ "Starting demonstration of routes"
+  let x1 = runMyApp (\x-> "default middlware called") myApp "middleware"
   print x1
-  
-    
-
-    

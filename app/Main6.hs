@@ -12,10 +12,10 @@ type Response = String
 
 type ActionT = Exc.ExceptT ActionError (Reader String) Response
 
-type Middleware = String -> String
-type Route = Middleware -> Middleware
+type Application = String -> String
+type Route = Application -> Application
 
-data AppState = AppState { middlewares:: [Route]}
+data AppState = AppState { routes:: [Route]}
 
 type ActionError = String
 
@@ -23,24 +23,24 @@ type AppStateT = ST.State AppState
 
 --type ActionT = Exc.ExceptT ActionError Maybe String
 
-add_middleware' mf s@(AppState {middlewares = mw}) = s {middlewares = mf:mw}
+add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
 
-middleware_func1 :: ActionT
-middleware_func1 = do
+route_handler1 :: ActionT
+route_handler1 = do
   input <- ask
   return $ "middlware_func1 got input = " ++ input
 
-middleware_func2 :: ActionT
-middleware_func2 = do
+route_handler2 :: ActionT
+route_handler2 = do
   input <- ask
   return $ "middlware_func2 got input = " ++ input
 
-middleware_func3_buggy :: ActionT
-middleware_func3_buggy = throwError "error from buggy handler"
+route_handler3_buggy :: ActionT
+route_handler3_buggy = throwError "error from buggy handler"
 
-middleware_func3 = do
+route_handler3 = do
   input <- ask
-  return $ "middleware_func3 called = " ++ input
+  return $ "route_handler3 called = " ++ input
 
 handler :: ActionT
 handler = do
@@ -69,7 +69,7 @@ runAction r input_string = do
   r <- (flip runReader input_string) $ Exc.runExceptT r
   return $ r
   --either (const Nothing) (Just) r
-  
+
   -- let tryNext = mw1 input_string in
   -- if pat input_string
   -- then
@@ -80,24 +80,24 @@ runAction r input_string = do
   -- else
   --   tryNext
 
-add_middleware mf pat = ST.modify $ \s -> add_middleware' (route mf pat) s
+add_route mf pat = ST.modify $ \s -> add_route' (route mf pat) s
 
 cond condition_str = f where
   f i = i == condition_str
 
 myApp :: AppStateT ()
 myApp = do
-  add_middleware middleware_func1 (\s -> s == "middleware11")
-  add_middleware middleware_func3_buggy (\s -> s == "middleware1")
-  add_middleware middleware_func2 (\s -> s == "middleware2")
-  add_middleware middleware_func3 (\s -> s == "middleware3")
+  add_route route_handler1 (\s -> s == "middleware11")
+  add_route route_handler3_buggy (\s -> s == "middleware1")
+  add_route route_handler2 (\s -> s == "middleware2")
+  add_route route_handler3 (\s -> s == "middleware3")
 
 runMyApp initial_string my_app =
-  let s = ST.execState my_app $ AppState { middlewares = []}
-      output = foldl (flip ($)) initial_string (middlewares s) in
+  let s = ST.execState my_app $ AppState { routes = []}
+      output = foldl (flip ($)) initial_string (routes s) in
   output
 
 main = do
-  print $ "Starting demonstration of middlewares"
+  print $ "Starting demonstration of routes"
   let x1 = runMyApp (\x-> "default middlware called") myApp "middleware1" in
     print $ show $ x1

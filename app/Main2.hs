@@ -5,22 +5,21 @@ import qualified Control.Monad.Trans.State.Strict as ST
 -- State Monad
 -- How to use a State Monad
 
-type Middleware = String -> String
-type Route = Middleware -> Middleware
+type Application = String -> String
+type Route = Application -> Application
 
-data AppState = AppState { middlewares:: [Route]}
+data AppState = AppState { routes:: [Route]}
 
 type AppStateT = ST.State AppState
 
-add_middleware' mf s@(AppState {middlewares = mw}) = s {middlewares = mf:mw}
+add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
 
-middleware_func1 input = input ++ " middleware1 called\n"
+route_handler input = input ++ " middleware1 called\n"
 
-middleware_func2 input = input ++ " middleware2 called\n"
+route_handler2 input = input ++ " middleware2 called\n"
 
-middleware_func3 input = input ++ " middleware3 called\n"
+route_handler3 input = input ++ " middleware3 called\n"
 
-route :: Middleware -> Route
 route mw mw1 input_string =
   let tryNext = mw1 input_string in
   if input_string == "initial_string"
@@ -30,26 +29,22 @@ route mw mw1 input_string =
   else
     tryNext
 
-add_middleware mf = ST.modify $ \s -> add_middleware' (route mf) s
+add_route mf = ST.modify $ \s -> add_route' (route mf) s
 
 myApp :: AppStateT ()
 myApp = do
-  add_middleware middleware_func1
-  add_middleware middleware_func2
-  add_middleware middleware_func3
+  add_route route_handler
+  add_route route_handler2
+  add_route route_handler3
 
 runMyApp initial_string my_app = do
-  let s = ST.execState my_app $ AppState { middlewares = []}
-  let output = foldl (flip ($)) initial_string (middlewares s)
+  let s = ST.execState my_app $ AppState { routes = []}
+  let output = foldl (flip ($)) initial_string (routes s)
   return $ output
 
 main = do
-  print $ "Starting demonstration of middlewares"
+  print $ "Starting demonstration of routes"
   let x1 = runMyApp (\x-> "default") myApp
   case x1 of
     Just x -> print $ x "initial_string"
     Nothing -> print "error"
-
-    
-
-    
