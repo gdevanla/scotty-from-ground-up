@@ -47,6 +47,7 @@ handler error = do
   input <- ask
   return $ "There was an error returned " ++ input
 
+
 route :: ActionT -> (String -> Bool) -> Route
 route mw pat mw1 input_string =
   let tryNext = mw1 input_string in
@@ -64,7 +65,17 @@ route mw pat mw1 input_string =
 
 runAction action input_string =
   let response = do
-        r <- (flip runReader input_string) $ Exc.runExceptT action
+        r <- ((flip runReader input_string) $ Exc.runExceptT action) `catchError`
+             (\e -> ((flip runReader input_string) $ Exc.runExceptT (handler  e)))
+        return r
+      left = (const $ Just $ "There was an error")
+      right = (Just) in
+    either left right response
+
+runAction2 action input_string =
+  let response = do
+        r <- (flip runReader input_string) $ Exc.runExceptT $ action `catchError`
+             (\e -> (handler  e))
         return r
       left = (const $ Just $ "There was an error")
       right = (Just) in
