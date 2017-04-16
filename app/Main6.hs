@@ -42,8 +42,8 @@ route_handler3 = do
   input <- ask
   return $ "route_handler3 called = " ++ input
 
-handler :: ActionT
-handler = do
+handler :: String -> ActionT
+handler error = do
   input <- ask
   return $ "There was an error returned " ++ input
 
@@ -52,11 +52,8 @@ route mw pat mw1 input_string =
   let tryNext = mw1 input_string in
   if pat input_string
   then
-    let x = do
-          r <- runAction mw input_string
-          return r
-        x1 = either (\x1 -> Just $ "error =" ++ x1) (Just) x
-        y = case x1 of
+    let x = runAction mw input_string
+        y = case x of
               Just x2 -> x2
               Nothing -> "Nothing..."
     in
@@ -65,20 +62,14 @@ route mw pat mw1 input_string =
     tryNext
 
 
-runAction r input_string = do
-  r <- (flip runReader input_string) $ Exc.runExceptT r
-  return $ r
-  --either (const Nothing) (Just) r
-
-  -- let tryNext = mw1 input_string in
-  -- if pat input_string
-  -- then
-  --   --maybe tryNext mw $ return input_string
-  --   let r = mw input_string `catchError` handler in
-  --     --either (const Nothing) ((flip const) Nothing) $ r
-  --   r
-  -- else
-  --   tryNext
+runAction action input_string =
+  let response = do
+        r <- (flip runReader input_string) $ Exc.runExceptT action
+        return r
+      left = (const $ Just $ "There was an error")
+      right = (Just) in
+    either left right response
+  
 
 add_route mf pat = ST.modify $ \s -> add_route' (route mf pat) s
 
@@ -87,17 +78,26 @@ cond condition_str = f where
 
 myApp :: AppStateT ()
 myApp = do
-  add_route route_handler1 (\s -> s == "middleware11")
-  add_route route_handler3_buggy (\s -> s == "middleware1")
-  add_route route_handler2 (\s -> s == "middleware2")
-  add_route route_handler3 (\s -> s == "middleware3")
+  add_route route_handler1 (\s -> s == "handler11")
+  add_route route_handler3_buggy (\s -> s == "buggy")
+  add_route route_handler2 (\s -> s == "handler2")
+  add_route route_handler3 (\s -> s == "handler3")
 
 runMyApp initial_string my_app =
   let s = ST.execState my_app $ AppState { routes = []}
       output = foldl (flip ($)) initial_string (routes s) in
   output
 
+defRoute _ = "There was no route defined to process your request."
+
+
 main = do
-  print $ "Starting demonstration of routes"
-  let x1 = runMyApp (\x-> "default middlware called") myApp "middleware1" in
-    print $ show $ x1
+  putStrLn "Please type in the request"
+  putStrLn "(one of 'handler1', 'handler2', 'hanlder3', 'buggy' or any string for default handling)"
+  request <- getLine
+  unless (request == "q") $ do
+    let x1 = runMyApp defRoute myApp request
+    putStrLn $ x1
+    putStrLn "\n\n\n"
+    main
+    
