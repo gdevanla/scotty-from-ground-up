@@ -46,6 +46,10 @@ route_handler3 = do
   input_string <- ask
   lift . lift $ (ST.modify $ (\s -> s ++ input_string ++ " inside middleware func 3"))
 
+handler :: String -> ActionT ()
+handler error = do
+  lift . lift $ (ST.modify $ (\s -> s ++ error ++ " inside middleware func 3"))
+
 add_route mf pat = ST.modify $ \s -> add_route' (route mf pat) s
 
 cond condition_str = f where
@@ -68,7 +72,7 @@ runAction :: ActionT () -> Request -> Maybe Response
 runAction action request =
   let (a, s) = (flip ST.runState "")
                $ (flip runReaderT request)
-               $ (Exc.runExceptT action)
+               $ (Exc.runExceptT) $ action `catchError` handler
       left = (const $ Just $ "There was an error")
       right = (const (Just $ s)) in
     either  left right a
