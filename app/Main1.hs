@@ -36,7 +36,7 @@ myApp = do
   addRoute routeHandler3
 
 runMyApp initial_string my_app = do
-  let s = ST.execState my_app $ AppState { routes = []}
+  let s = ST.execState my_app AppState{ routes = []}
   let output = foldl (flip ($)) initial_string (routes s)
   return $ output
 
@@ -47,6 +47,6 @@ main = do
   unless (request == "q") $ do
     let response = runMyApp request myApp
     case response of
-      Just x -> putStrLn $ x
+      Just x -> putStrLn x
       Nothing -> putStrLn "Error"
     main
