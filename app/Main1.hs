@@ -13,13 +13,17 @@ data AppState = AppState { routes::[Route]}
 
 type AppStateT = ST.State AppState
 
+constructResponse :: [String] -> String
 constructResponse = unwords
 
+addRoute' :: Route -> AppState -> AppState
 addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
+routeHandler1 :: [Char] -> String
 routeHandler1 request =
   constructResponse [
   "\nrequest in handler1: got " ++ request]
+
 
 routeHandler2 request = constructResponse [
       "\n\trequest in handler2 got :" ++ request]
