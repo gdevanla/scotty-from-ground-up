@@ -29,12 +29,8 @@ addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
 routeHandler2 input = Exc.ExceptT $ Just $ Right $ input ++ " middleware2 called\n"
 
-routeHandler_buggy :: String -> Exc.ExceptT ActionError Maybe String
-routeHandler_buggy input = throwError "test"
-
---routeHandler3 input = Exc.ExceptT $ Just $ Right $ input ++ " middleware3 called\n"
-
---default_route request = Exc.ExceptT $ Just $ Right $ request ++ " default route called\n"
+routeHandlerBuggy :: String -> Exc.ExceptT ActionError Maybe String
+routeHandlerBuggy input = throwError "test"
 
 routeHandler1 request =
   Exc.ExceptT $ Just $ Right $ constructResponse [
@@ -44,9 +40,9 @@ routeHandler3 request =
   Exc.ExceptT $ Just $ Right $ constructResponse [
   "request in handler3:" ++ request]
 
-default_route request =
+defaultRoute request =
   Exc.ExceptT $ Just $ Right $ constructResponse [
-  request , "processed by default_route"]
+  request , "processed by defaultRoute"]
 
 handler :: String -> Exc.ExceptT ActionError Maybe String
 handler s = Exc.ExceptT $ Just $ Right $ "There was an error returned: " ++ s
@@ -70,13 +66,13 @@ cond condition_str = f where
 myApp :: AppStateT ()
 myApp = do
   addRoute routeHandler1 (== "handler1")
-  addRoute routeHandler_buggy (== "buggy")
+  addRoute routeHandlerBuggy (== "buggy")
   addRoute routeHandler2 (== "handler2")
   addRoute routeHandler3 (== "handler3")
 
 runMyApp def my_app request = do
-  let s = ST.execState my_app $ AppState { routes = []}
-  let output = foldl (flip ($)) def (routes s) $ request
+  let s = ST.execState my_app AppState{ routes = []}
+  let output = foldl (flip ($)) def (routes s) request
   output
 
 main = do
@@ -84,7 +80,7 @@ main = do
   putStrLn "(one of 'handler1', 'handler2', 'handler3', 'buggy' or any string for default handling)"
   request <- getLine
   unless (request == "q") $ do
-    let response = runMyApp default_route myApp request
+    let response = runMyApp defaultRoute myApp request
     let value = Exc.runExceptT response
-    putStrLn $ either id id $ fromJust $ value
+    putStrLn $ either id id $ fromJust value
     main

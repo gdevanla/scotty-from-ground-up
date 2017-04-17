@@ -28,8 +28,8 @@ routeHandler2 request = constructResponse [
 routeHandler3 request = constructResponse [
   "request in handler3:" ++ request]
 
-default_route request = constructResponse [
-  request , "processed by default_route"]
+defaultRoute request = constructResponse [
+  request , "processed by defaultRoute"]
 
 
 route mw pat mw1 input_string =
@@ -59,7 +59,7 @@ main = do
   putStrLn "(one of 'handler1', 'handler2', 'handler3', 'buggy' or any string for default handling)"
   request <- getLine
   unless (request == "q") $ do
-    let response = runMyApp default_route myApp request
+    let response = runMyApp defaultRoute myApp request
     case response of
       Just x -> putStrLn $ x
       Nothing -> putStrLn "Error"
