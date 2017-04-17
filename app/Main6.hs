@@ -26,22 +26,22 @@ type AppStateT = ST.State AppState
 
 addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
-route_handler1 :: ActionT
-route_handler1 = do
+routeHandler1 :: ActionT
+routeHandler1 = do
   input <- ask
   return $ "middlware_func1 got input = " ++ input
 
-route_handler2 :: ActionT
-route_handler2 = do
+routeHandler2 :: ActionT
+routeHandler2 = do
   input <- ask
   return $ "middlware_func2 got input = " ++ input
 
-route_handler3_buggy :: ActionT
-route_handler3_buggy = throwError "error from buggy handler"
+routeHandler3_buggy :: ActionT
+routeHandler3_buggy = throwError "error from buggy handler"
 
-route_handler3 = do
+routeHandler3 = do
   input <- ask
-  return $ "route_handler3 called = " ++ input
+  return $ "routeHandler3 called = " ++ input
 
 handler :: String -> ActionT
 handler error = do
@@ -78,10 +78,10 @@ cond condition_str = f where
 
 myApp :: AppStateT ()
 myApp = do
-  addRoute route_handler1 (== "handler11")
-  addRoute route_handler3_buggy (== "buggy")
-  addRoute route_handler2 (== "handler2")
-  addRoute route_handler3 (== "handler3")
+  addRoute routeHandler1 (== "handler11")
+  addRoute routeHandler3_buggy (== "buggy")
+  addRoute routeHandler2 (== "handler2")
+  addRoute routeHandler3 (== "handler3")
 
 runMyApp initial_string my_app =
   let s = ST.execState my_app AppState{routes = []}

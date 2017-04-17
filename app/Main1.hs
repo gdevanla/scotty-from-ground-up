@@ -17,23 +17,23 @@ constructResponse = unwords
 
 addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
-route_handler1 request =
+routeHandler1 request =
   constructResponse [
   "\nrequest in handler1: got " ++ request]
 
-route_handler2 request = constructResponse [
+routeHandler2 request = constructResponse [
       "\n\trequest in handler2 got :" ++ request]
 
-route_handler3 request = constructResponse [
+routeHandler3 request = constructResponse [
   "\n\t\trequest in handler3:" ++ request]
 
 addRoute mf = ST.modify $ \s -> addRoute' mf s
 
 myApp :: AppStateT ()
 myApp = do
-  addRoute route_handler1
-  addRoute route_handler2
-  addRoute route_handler3
+  addRoute routeHandler1
+  addRoute routeHandler2
+  addRoute routeHandler3
 
 runMyApp initial_string my_app = do
   let s = ST.execState my_app $ AppState { routes = []}

@@ -23,13 +23,13 @@ addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
 constructResponse = unwords
 
-route_handler1 request =
+routeHandler1 request =
   Just $ constructResponse [
   "request in handler1: got " ++ request]
 
-route_handler2 request = Nothing
+routeHandler2 request = Nothing
 
-route_handler3 request =
+routeHandler3 request =
   Just $ constructResponse [
   "request in handler3:" ++ request]
 
@@ -57,9 +57,9 @@ cond condition_str = f where
 
 myApp :: AppStateT ()
 myApp = do
-  addRoute route_handler1 (== "handler1")
-  addRoute route_handler2 (== "handler2")
-  addRoute route_handler3 (== "handler3")
+  addRoute routeHandler1 (== "handler1")
+  addRoute routeHandler2 (== "handler2")
+  addRoute routeHandler3 (== "handler3")
 
 runMyApp def my_app request = do
   let s = ST.execState my_app $ AppState { routes = []}

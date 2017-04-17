@@ -18,14 +18,14 @@ addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
 constructResponse = unwords
 
-route_handler1 request =
+routeHandler1 request =
   constructResponse [
   "request in handler1: got " ++ request]
 
-route_handler2 request = constructResponse [
+routeHandler2 request = constructResponse [
       "request in handler2 got :" ++ request]
 
-route_handler3 request = constructResponse [
+routeHandler3 request = constructResponse [
   "request in handler3:" ++ request]
 
 default_route request = constructResponse [
@@ -45,9 +45,9 @@ addRoute mf pat = ST.modify $ \s -> addRoute' (route mf pat) s
 
 myApp :: AppStateT ()
 myApp = do
-  addRoute route_handler1 (== "handler1")
-  addRoute route_handler2 (== "handler2")
-  addRoute route_handler3 (== "handler3")
+  addRoute routeHandler1 (== "handler1")
+  addRoute routeHandler2 (== "handler2")
+  addRoute routeHandler3 (== "handler3")
 
 runMyApp def my_app request = do
   let s = ST.execState my_app $ AppState { routes = []}

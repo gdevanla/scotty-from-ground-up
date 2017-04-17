@@ -27,24 +27,24 @@ addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 constructResponse :: [[Char]] -> [Char]
 constructResponse = unwords
 
-route_handler1 :: ActionT ()
-route_handler1 = do
+routeHandler1 :: ActionT ()
+routeHandler1 = do
   input_string <- ask
   let st =
         ST.modify
-        (\_ -> constructResponse ["request:" ++ input_string, "processed by route_handler1"])
+        (\_ -> constructResponse ["request:" ++ input_string, "processed by routeHandler1"])
   lift . lift $ st
 
-route_handler2 :: ActionT ()
-route_handler2 = do
+routeHandler2 :: ActionT ()
+routeHandler2 = do
   input_string <- ask
   lift . lift $ ST.modify  (\s -> s ++ input_string ++ " inside middleware func 2")
 
-route_handler3_buggy :: ActionT ()
-route_handler3_buggy = throwError "error from buggy handler"
+routeHandler3_buggy :: ActionT ()
+routeHandler3_buggy = throwError "error from buggy handler"
 
-route_handler3 :: ActionT ()
-route_handler3 = do
+routeHandler3 :: ActionT ()
+routeHandler3 = do
   input_string <- ask
   lift . lift $ ST.modify (\s -> s ++ input_string ++ " inside middleware func 3")
 
@@ -82,10 +82,10 @@ runAction action request =
 
 myApp :: AppStateT ()
 myApp = do
-  addRoute route_handler1 (== "handler1")
-  addRoute route_handler2 (== "handler2")
-  addRoute route_handler3 (== "handler3")
-  addRoute route_handler3_buggy (== "buggy")
+  addRoute routeHandler1 (== "handler1")
+  addRoute routeHandler2 (== "handler2")
+  addRoute routeHandler3 (== "handler3")
+  addRoute routeHandler3_buggy (== "buggy")
 
 
 runMyApp ::

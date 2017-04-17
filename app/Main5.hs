@@ -25,22 +25,22 @@ constructResponse = unwords
 
 addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
---route_handler1 input = Exc.ExceptT $ Nothing --Just $ input ++ " middleware1 called\n"
+--routeHandler1 input = Exc.ExceptT $ Nothing --Just $ input ++ " middleware1 called\n"
 
-route_handler2 input = Exc.ExceptT $ Just $ Right $ input ++ " middleware2 called\n"
+routeHandler2 input = Exc.ExceptT $ Just $ Right $ input ++ " middleware2 called\n"
 
-route_handler_buggy :: String -> Exc.ExceptT ActionError Maybe String
-route_handler_buggy input = throwError "test"
+routeHandler_buggy :: String -> Exc.ExceptT ActionError Maybe String
+routeHandler_buggy input = throwError "test"
 
---route_handler3 input = Exc.ExceptT $ Just $ Right $ input ++ " middleware3 called\n"
+--routeHandler3 input = Exc.ExceptT $ Just $ Right $ input ++ " middleware3 called\n"
 
 --default_route request = Exc.ExceptT $ Just $ Right $ request ++ " default route called\n"
 
-route_handler1 request =
+routeHandler1 request =
   Exc.ExceptT $ Just $ Right $ constructResponse [
   "request in handler1: got " ++ request]
 
-route_handler3 request =
+routeHandler3 request =
   Exc.ExceptT $ Just $ Right $ constructResponse [
   "request in handler3:" ++ request]
 
@@ -69,10 +69,10 @@ cond condition_str = f where
 
 myApp :: AppStateT ()
 myApp = do
-  addRoute route_handler1 (== "handler1")
-  addRoute route_handler_buggy (== "buggy")
-  addRoute route_handler2 (== "handler2")
-  addRoute route_handler3 (== "handler3")
+  addRoute routeHandler1 (== "handler1")
+  addRoute routeHandler_buggy (== "buggy")
+  addRoute routeHandler2 (== "handler2")
+  addRoute routeHandler3 (== "handler3")
 
 runMyApp def my_app request = do
   let s = ST.execState my_app $ AppState { routes = []}
