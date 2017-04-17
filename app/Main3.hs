@@ -14,21 +14,21 @@ data AppState = AppState { routes:: [Route]}
 
 type AppStateT = ST.State AppState
 
-add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
+addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
-construct_response args = intercalate " " args
+constructResponse = unwords
 
 route_handler1 request =
-  construct_response [
+  constructResponse [
   "request in handler1: got " ++ request]
 
-route_handler2 request = construct_response [
+route_handler2 request = constructResponse [
       "request in handler2 got :" ++ request]
 
-route_handler3 request = construct_response [
+route_handler3 request = constructResponse [
   "request in handler3:" ++ request]
 
-default_route request = construct_response [
+default_route request = constructResponse [
   request , "processed by default_route"]
 
 
@@ -41,13 +41,13 @@ route mw pat mw1 input_string =
   else
     tryNext
 
-add_route mf pat = ST.modify $ \s -> add_route' (route mf pat) s
+addRoute mf pat = ST.modify $ \s -> addRoute' (route mf pat) s
 
 myApp :: AppStateT ()
 myApp = do
-  add_route route_handler1 (\s -> s == "handler1")
-  add_route route_handler2 (\s -> s == "handler2")
-  add_route route_handler3 (\s -> s == "handler3")
+  addRoute route_handler1 (== "handler1")
+  addRoute route_handler2 (== "handler2")
+  addRoute route_handler3 (== "handler3")
 
 runMyApp def my_app request = do
   let s = ST.execState my_app $ AppState { routes = []}

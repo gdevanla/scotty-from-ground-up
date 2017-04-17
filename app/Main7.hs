@@ -4,6 +4,7 @@ import qualified Control.Monad.Trans.State.Strict as ST
 import qualified Control.Monad.Trans.Except as Exc
 import Control.Monad.Reader
 import Control.Monad.Error.Class
+import Data.Maybe
 --
 
 type Response = String
@@ -20,23 +21,24 @@ type ActionError = String
 
 type AppStateT = ST.State AppState
 
-add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
+addRoute' :: Route -> AppState -> AppState
+addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
-construct_response args = intercalate " " args
+constructResponse :: [[Char]] -> [Char]
+constructResponse = unwords
 
 route_handler1 :: ActionT ()
 route_handler1 = do
   input_string <- ask
-  let st = (
+  let st =
         ST.modify
-          $ (\_ -> construct_response ["request:" ++ input_string, "processed by route_handler1"]))
+        (\_ -> constructResponse ["request:" ++ input_string, "processed by route_handler1"])
   lift . lift $ st
 
 route_handler2 :: ActionT ()
 route_handler2 = do
   input_string <- ask
-  lift . lift $ (ST.modify $ (\s -> s ++ input_string ++ " inside middleware func 2"))
-
+  lift . lift $ ST.modify  (\s -> s ++ input_string ++ " inside middleware func 2")
 
 route_handler3_buggy :: ActionT ()
 route_handler3_buggy = throwError "error from buggy handler"
@@ -44,14 +46,15 @@ route_handler3_buggy = throwError "error from buggy handler"
 route_handler3 :: ActionT ()
 route_handler3 = do
   input_string <- ask
-  lift . lift $ (ST.modify $ (\s -> s ++ input_string ++ " inside middleware func 3"))
+  lift . lift $ ST.modify (\s -> s ++ input_string ++ " inside middleware func 3")
 
 handler :: String -> ActionT ()
-handler error = do
-  lift . lift $ (ST.modify $ (\s -> s ++ error ++ " inside middleware func 3"))
+handler error = lift . lift
+  $ ST.modify (\s -> s ++ error ++ " inside middleware func 3")
 
-add_route mf pat = ST.modify $ \s -> add_route' (route mf pat) s
+addRoute mf pat = ST.modify $ \s -> addRoute' (route mf pat) s
 
+cond :: Eq t => t -> t -> Bool
 cond condition_str = f where
   f i = i == condition_str
 
@@ -62,43 +65,47 @@ route mw pat mw1 request =
   then
     let x = runAction mw request
     in
-      case x of
-        Just x2 -> x2
-        Nothing -> ""
+      fromMaybe "" x
   else
     tryNext
 
 runAction :: ActionT () -> Request -> Maybe Response
 runAction action request =
-  let (a, s) = (flip ST.runState "")
-               $ (flip runReaderT request)
-               $ (Exc.runExceptT) $ action `catchError` handler
-      left = (const $ Just $ "There was an error")
-      right = (const (Just $ s)) in
+  let (a, s) = flip ST.runState ""
+               $ flip runReaderT request
+               $ Exc.runExceptT
+               $ action `catchError` handler
+      left = const $ Just "There was an error"
+      right = const $ Just s in
     either  left right a
 
 
 myApp :: AppStateT ()
 myApp = do
-  add_route route_handler1 (\s -> s == "handler1")
-  add_route route_handler2 (\s -> s == "handler2")
-  add_route route_handler3 (\s -> s == "handler3")
-  add_route route_handler3_buggy (\s -> s == "buggy")
+  addRoute route_handler1 (== "handler1")
+  addRoute route_handler2 (== "handler2")
+  addRoute route_handler3 (== "handler3")
+  addRoute route_handler3_buggy (== "buggy")
 
 
+runMyApp ::
+  (String -> String) -> ST.State AppState a -> String -> String
 runMyApp initial_string my_app =
-  let s = ST.execState my_app $ AppState { routes = []}
+  let s = ST.execState my_app  AppState{routes = []}
       output = foldl (flip ($)) initial_string (routes s) in
   output
 
+
+defRoute :: t -> [Char]
 defRoute _ = "There was no route defined to process your request."
 
+main :: IO ()
 main = do
   putStrLn "Please type in the request"
   putStrLn "(one of 'handler1', 'handler2', 'hanlder3', 'buggy' or any string for default handling)"
   request <- getLine
   unless (request == "q") $ do
     let x1 = runMyApp defRoute myApp request
-    putStrLn $ x1
+    putStrLn x1
     putStrLn "\n\n\n"
-    main
+    --main

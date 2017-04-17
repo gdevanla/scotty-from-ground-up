@@ -21,9 +21,9 @@ type AppStateT = ST.State AppState
 
 --type ActionT = Exc.ExceptT ActionError Maybe String
 
-construct_response args = intercalate " " args
+constructResponse = unwords
 
-add_route' mf s@(AppState {routes = mw}) = s {routes = mf:mw}
+addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
 --route_handler1 input = Exc.ExceptT $ Nothing --Just $ input ++ " middleware1 called\n"
 
@@ -37,15 +37,15 @@ route_handler_buggy input = throwError "test"
 --default_route request = Exc.ExceptT $ Just $ Right $ request ++ " default route called\n"
 
 route_handler1 request =
-  Exc.ExceptT $ Just $ Right $ construct_response [
+  Exc.ExceptT $ Just $ Right $ constructResponse [
   "request in handler1: got " ++ request]
 
 route_handler3 request =
-  Exc.ExceptT $ Just $ Right $ construct_response [
+  Exc.ExceptT $ Just $ Right $ constructResponse [
   "request in handler3:" ++ request]
 
 default_route request =
-  Exc.ExceptT $ Just $ Right $ construct_response [
+  Exc.ExceptT $ Just $ Right $ constructResponse [
   request , "processed by default_route"]
 
 handler :: String -> Exc.ExceptT ActionError Maybe String
@@ -62,17 +62,17 @@ route mw pat mw1 request =
   else
     tryNext
 
-add_route mf pat = ST.modify $ \s -> add_route' (route mf pat) s
+addRoute mf pat = ST.modify $ \s -> addRoute' (route mf pat) s
 
 cond condition_str = f where
   f i = i == condition_str
 
 myApp :: AppStateT ()
 myApp = do
-  add_route route_handler1 (\s -> s == "handler1")
-  add_route route_handler_buggy (\s -> s == "buggy")
-  add_route route_handler2 (\s -> s == "handler2")
-  add_route route_handler3 (\s -> s == "handler3")
+  addRoute route_handler1 (== "handler1")
+  addRoute route_handler_buggy (== "buggy")
+  addRoute route_handler2 (== "handler2")
+  addRoute route_handler3 (== "handler3")
 
 runMyApp def my_app request = do
   let s = ST.execState my_app $ AppState { routes = []}
@@ -88,4 +88,3 @@ main = do
     let value = Exc.runExceptT response
     putStrLn $ either id id $ fromJust $ value
     main
-
