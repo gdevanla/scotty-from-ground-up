@@ -50,9 +50,9 @@ myApp = do
   addRoute routeHandler3 (== "handler3")
 
 runMyApp def my_app request = do
-  let s = ST.execState my_app $ AppState { routes = []}
-  let output = foldl (flip ($)) def (routes s) $ request
-  return $ output
+  let s = ST.execState my_app AppState{ routes = []}
+  let output = foldl (flip ($)) def (routes s) request
+  return output
 
 main = do
   putStrLn "Please type in the request"
@@ -61,6 +61,6 @@ main = do
   unless (request == "q") $ do
     let response = runMyApp defaultRoute myApp request
     case response of
-      Just x -> putStrLn $ x
+      Just x -> putStrLn x
       Nothing -> putStrLn "Error"
     main
