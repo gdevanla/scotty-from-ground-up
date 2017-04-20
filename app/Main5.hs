@@ -10,7 +10,7 @@ type Response = String
 type Request = String
 
 type ActionError = String
-type ActionT = Exc.ExceptT ActionError Maybe Response
+type ActionT = Exc.Except ActionError Response
 type Application = Request -> ActionT
 
 type Route = Application -> Application
@@ -24,23 +24,23 @@ constructResponse = unwords
 
 routeHandler1 :: Request -> ActionT
 routeHandler1 request =
-  Exc.ExceptT $ Just $ Right $ constructResponse [
+  Exc.except $ Right $ constructResponse [
   "request in handler1: got " ++ request]
 
 routeHandler2 :: Request -> ActionT
-routeHandler2 input = Exc.ExceptT $ Just $ Right $ input ++ " middleware2 called\n"
+routeHandler2 input = Exc.except $ Right $ input ++ " middleware2 called\n"
 
 routeHandlerBuggy :: Request -> ActionT
 routeHandlerBuggy input = throwError "Error from routeHandlerBuggy"
 
 routeHandler3 :: String -> ActionT
 routeHandler3 request =
-  Exc.ExceptT $ Just $ Right $ constructResponse [
+  Exc.except $ Right $ constructResponse [
   "request in handler3:" ++ request]
 
 defaultRoute :: Request -> ActionT
 defaultRoute request =
-  Exc.ExceptT $ Just $ Right $ constructResponse [
+  Exc.except $ Right $ constructResponse [
   request , "processed by defaultRoute"]
 
 cond :: Eq t => t -> t -> Bool
@@ -59,7 +59,7 @@ main = myScotty myApp
 
 --framework functions
 errorHandler :: Request -> ActionT
-errorHandler s = Exc.ExceptT $ Just $ Right $ "There was an error returned: " ++ s
+errorHandler s = Exc.except $ Right $ "There was an error returned: " ++ s
 
 route ::
   (Request -> ActionT)
@@ -97,8 +97,8 @@ userInputLoop app_state = do
   request <- getLine
   unless (request == "q") $ do
     let response = runMyApp defaultRoute app_state request
-    let value = Exc.runExceptT response
-    putStrLn $ either id id $ fromJust value
+    let value = Exc.runExcept response
+    putStrLn $ either id id $ value
     main
 
 myScotty :: ST.State AppState a -> IO ()

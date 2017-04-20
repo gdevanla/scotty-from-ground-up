@@ -10,8 +10,9 @@ import Data.Maybe
 -- How to use a State Monad
 
 type Response = String
+type Request =  String
 
-type ActionT = Exc.ExceptT ActionError (Reader String) Response
+type ActionT = Exc.ExceptT ActionError (Reader Request) Response
 
 type Application = String -> String
 type Route = Application -> Application
@@ -22,10 +23,7 @@ type ActionError = String
 
 type AppStateT = ST.State AppState
 
---type ActionT = Exc.ExceptT ActionError Maybe String
-
-addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
-
+-- client functions
 routeHandler1 :: ActionT
 routeHandler1 = do
   input <- ask
@@ -39,6 +37,7 @@ routeHandler2 = do
 routeHandler3_buggy :: ActionT
 routeHandler3_buggy = throwError "error from buggy handler"
 
+routeHandler3 :: ActionT
 routeHandler3 = do
   input <- ask
   return $ "routeHandler3 called = " ++ input
@@ -48,6 +47,24 @@ handler error = do
   input <- ask
   return $ "There was an error returned " ++ input
 
+cond :: Eq t => t -> t -> Bool
+cond condition_str = f where
+  f i = i == condition_str
+
+myApp :: AppStateT ()
+myApp = do
+  addRoute routeHandler1 (== "handler1")
+  addRoute routeHandler3_buggy (== "buggy")
+  addRoute routeHandler2 (== "handler2")
+  addRoute routeHandler3 (== "handler3")
+
+main :: IO ()
+main = myScotty myApp
+
+-- framework functions
+
+addRoute' :: Route -> AppState -> AppState
+addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
 
 route :: ActionT -> (String -> Bool) -> Route
 route mw pat mw1 input_string =
@@ -61,7 +78,9 @@ route mw pat mw1 input_string =
   else
     tryNext
 
-
+runAction ::
+  Exc.ExceptT ActionError (Reader Request) Response
+  -> [Char] -> Maybe [Char]
 runAction action request =
   let response = flip runReader request
                  $ Exc.runExceptT
@@ -71,32 +90,28 @@ runAction action request =
   in
     either left right response
 
+addRoute ::
+  Monad m => ActionT -> (String -> Bool) -> ST.StateT AppState m ()
 addRoute mf pat = ST.modify $ \s -> addRoute' (route mf pat) s
 
-cond condition_str = f where
-  f i = i == condition_str
+runMyApp :: Application -> AppState -> Application
+runMyApp initial_string app_state = foldl (flip ($)) initial_string (routes app_state)
 
-myApp :: AppStateT ()
-myApp = do
-  addRoute routeHandler1 (== "handler11")
-  addRoute routeHandler3_buggy (== "buggy")
-  addRoute routeHandler2 (== "handler2")
-  addRoute routeHandler3 (== "handler3")
-
-runMyApp initial_string my_app =
-  let s = ST.execState my_app AppState{routes = []}
-      output = foldl (flip ($)) initial_string (routes s) in
-  output
-
+defRoute :: t -> [Char]
 defRoute _ = "There was no route defined to process your request."
 
-
-main = do
+userInputLoop :: AppState -> IO ()
+userInputLoop app_state = do
   putStrLn "Please type in the request"
   putStrLn "(one of 'handler1', 'handler2', 'hanlder3', 'buggy' or any string for default handling)"
   request <- getLine
   unless (request == "q") $ do
-    let x1 = runMyApp defRoute myApp request
+    let x1 = runMyApp defRoute app_state request
     putStrLn x1
     putStrLn "\n\n\n"
-    main
+    userInputLoop app_state
+
+myScotty :: ST.State AppState a -> IO ()
+myScotty my_app = do
+  let app_state = ST.execState my_app AppState{routes = []}
+  userInputLoop app_state
