@@ -11,6 +11,7 @@ import Data.Maybe
 
 type Response = String
 type Request =  String
+type ActionError = String
 
 type ActionT = Exc.ExceptT ActionError (Reader Request) Response
 
@@ -18,9 +19,6 @@ type Application = String -> String
 type Route = Application -> Application
 
 data AppState = AppState { routes:: [Route]}
-
-type ActionError = String
-
 type AppStateT = ST.State AppState
 
 -- client functions
@@ -42,11 +40,6 @@ routeHandler3 = do
   input <- ask
   return $ "routeHandler3 called = " ++ input
 
-handler :: String -> ActionT
-handler error = do
-  input <- ask
-  return $ "There was an error returned " ++ input
-
 cond :: Eq t => t -> t -> Bool
 cond condition_str = f where
   f i = i == condition_str
@@ -62,6 +55,11 @@ main :: IO ()
 main = myScotty myApp
 
 -- framework functions
+
+errorHandler :: String -> ActionT
+errorHandler error = do
+  input <- ask
+  return $ "There was an error returned for input=" ++ input ++ ", error=" ++ error 
 
 addRoute' :: Route -> AppState -> AppState
 addRoute' mf s@AppState {routes = mw} = s {routes = mf:mw}
@@ -80,12 +78,12 @@ route mw pat mw1 input_string =
 
 runAction ::
   Exc.ExceptT ActionError (Reader Request) Response
-  -> [Char] -> Maybe [Char]
+  -> String -> Maybe String
 runAction action request =
   let response = flip runReader request
                  $ Exc.runExceptT
-                 $ action `catchError`  handler
-      left = const $ Just "There was an error"
+                 $ action `catchError` errorHandler
+      left =  (\x -> Just $ (++) "There was an error :" x)
       right = Just
   in
     either left right response

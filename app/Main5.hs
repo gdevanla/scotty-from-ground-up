@@ -8,11 +8,11 @@ import Data.Maybe
 
 type Response = String
 type Request = String
-
 type ActionError = String
-type ActionT = Exc.Except ActionError Response
-type Application = Request -> ActionT
 
+type ActionT = Exc.Except ActionError Response
+
+type Application = Request -> ActionT
 type Route = Application -> Application
 
 data AppState = AppState { routes:: [Route]}
